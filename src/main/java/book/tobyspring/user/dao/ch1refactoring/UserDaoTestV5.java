@@ -1,8 +1,8 @@
-package book.tobyspring.user.dao;
+package book.tobyspring.user.dao.ch1refactoring;
 
+import book.tobyspring.user.dao.UserDao;
 import book.tobyspring.user.domain.User;
 import org.springframework.context.ApplicationContext;
-import org.springframework.context.annotation.AnnotationConfigApplicationContext;
 import org.springframework.context.support.GenericXmlApplicationContext;
 
 import java.sql.SQLException;
@@ -10,15 +10,10 @@ import java.sql.SQLException;
 public class UserDaoTestV5 {
     public static void main(String[] args) throws SQLException {
 
-        //// before-change: DataSource class version
-        //ApplicationContext context = new AnnotationConfigApplicationContext(DaoFactory.class);
-
-        //after-change: DataSource xml version
-        ApplicationContext context = new GenericXmlApplicationContext("applicationContext.xml");
+        ApplicationContext context = new GenericXmlApplicationContext("test-applicationContext.xml");
 
         UserDao dao = context.getBean("instantiateUserDaoConnectedToDBWithDataSource", UserDao.class);
 
-        // (all below)part same as previous version
         User user = new User();
         user.setId("m333");
         user.setName("mitsui");

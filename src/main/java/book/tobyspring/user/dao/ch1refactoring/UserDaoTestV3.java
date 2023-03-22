@@ -1,10 +1,4 @@
-package book.tobyspring.user.dao;
-
-import book.tobyspring.user.domain.User;
-import org.springframework.context.ApplicationContext;
-import org.springframework.context.support.GenericXmlApplicationContext;
-
-import java.sql.SQLException;
+package book.tobyspring.user.dao.ch1refactoring;
 
 public class UserDaoTestV3 {
 //    public static void main(String[] args) throws SQLException {

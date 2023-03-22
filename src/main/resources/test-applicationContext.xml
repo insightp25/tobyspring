@@ -4,16 +4,10 @@
        xsi:schemaLocation="http://www.springframework.org/schema/beans
        http://www.springframework.org/schema/beans/spring-beans.xsd">
 
-    <!--    <bean id="reusableConnectionMaker" class="book.tobyspring.user.dao.DConnectionMaker" />-->
-
-    <!--    <bean id="instantiateUserDaoConnectedToDB" class="book.tobyspring.user.dao.UserDao">-->
-    <!--        <property name="connectionMaker" ref="reusableConnectionMaker" />-->
-    <!--    </bean>-->
-
     <bean id="reusableDataSource" class="org.springframework.jdbc.datasource.DriverManagerDataSource">
-        <property name="url" value="" />
-        <property name="username" value="" />
-        <property name="password" value="" />
+        <property name="url" value="jdbc:mysql://127.0.0.1/testdb" />
+        <property name="username" value="root" />
+        <property name="password" value="l$de11@0$ql" />
     </bean>
 
     <bean id="instantiateUserDaoConnectedToDBWithDataSource" class="book.tobyspring.user.dao.UserDao">

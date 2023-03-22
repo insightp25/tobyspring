@@ -1,126 +1,156 @@
 package book.tobyspring.user.dao;
 
+import book.tobyspring.user.dao.ch2refactoring.AddStatement;
+import book.tobyspring.user.dao.ch2refactoring.DeleteAllStatement;
+import book.tobyspring.user.dao.ch2refactoring.StatementStrategy;
 import book.tobyspring.user.domain.User;
-import org.springframework.context.ApplicationContext;
-import org.springframework.context.annotation.AnnotationConfigApplicationContext;
 import org.springframework.dao.EmptyResultDataAccessException;
 
 import javax.sql.DataSource;
 import java.sql.*;
 
 public class UserDao {
-    ////DataSource 적용 전
-    //private ConnectionMaker connectionMaker;
     private DataSource dataSource;
 
-    ////의존관계 '주입'방식1 (사용시 DaoFactory의 instantiateUserDaoConnectedToDB() 1번째 방식 선택)
-    //public UserDao(ConnectionMaker connectionMaker) {
-    //    this.connectionMaker = connectionMaker;
-    //}
-
-    ////DataSource 적용 전
-    //의존관계 '주입'방식2 - 수정자 메소드 DI 방식 (사용시 DaoFactory의 instantiateUserDaoConnectedToDB() 2번째 방식 선택)
-    //public void setConnectionMaker(ConnectionMaker connectionMaker) {
-    //    this.connectionMaker = connectionMaker;
-    //}
     public void setDataSource(DataSource dataSource) {
         this.dataSource = dataSource;
     }
 
-    ////의존관계 '검색'방식1 (현재는 주입방식에 맞춰 코드가 짜여져 있으므로, 검색방식으로 실행을 원할 시 UserDaoTest 코드를 일부 수정해야 한다)
-    //public UserDao() {
-    //    DaoFactory daoFactory = new DaoFactory();
-    //    this.connectionMaker = daoFactory.reusableConnectionMaker();
-    //}
-
-    ////의존관계 '검색'방식2 (현재는 주입방식에 맞춰 코드가 짜여져 있으므로, 검색방식으로 실행을 원할 시 UserDaoTest 코드를 일부 수정해야 한다)
-    //public UserDao() {
-    //    ApplicationContext context = new AnnotationConfigApplicationContext(DaoFactory.class);
-    //    this.connectionMaker = context.getBean("reusableConnectionMaker", ConnectionMaker.class);
-    //}
-
     public void add(User user) throws SQLException {
-        //Class.forName("com.mysql.jdbc.Driver");
+        jdbcContextWithStatementStrategy(new StatementStrategy() {
+            public PreparedStatement makePreparedStatement(Connection c) throws SQLException {
+                PreparedStatement ps = c.prepareStatement("insert into users(id, name, password) values(?, ?, ?)");
+                ps.setString(1, user.getId());
+                ps.setString(2, user.getName());
+                ps.setString(3, user.getPassword());
 
-        ////DataSource 적용 전
-        //Connection c = connectionMaker.makeConnection();
-        Connection c = dataSource.getConnection();
-
-        PreparedStatement ps = c.prepareStatement("insert into users(id, name, password) values(?, ?, ?)");
-        ps.setString(1, user.getId());
-        ps.setString(2, user.getName());
-        ps.setString(3, user.getPassword());
-
-        ps.executeUpdate();
-
-        ps.close();
-        c.close();
+                return ps;
+            }
+        });
     }
 
     public User get(String id) throws SQLException {
-        //Class.forName("com.mysql.jdbc.Driver");
+        Connection c = null;
+        PreparedStatement ps = null;
+        ResultSet rs = null;
 
-        ////DataSource 적용 전
-        //Connection c = connectionMaker.makeConnection();
-        Connection c = dataSource.getConnection();
+        try {
+            c = dataSource.getConnection();
 
-        PreparedStatement ps = c.prepareStatement("select * from users where id = ?");
-        ps.setString(1, id);
+            ps = c.prepareStatement("select * from users where id = ?");
+            ps.setString(1, id);
 
-        ResultSet rs = ps.executeQuery();
+            rs = ps.executeQuery();
 
-        //// changed from ch2
-        //rs.next();
-        //User user = new User();
-        //user.setId(rs.getString("id"));
-        //user.setName(rs.getString("name"));
-        //user.setPassword(rs.getString("password"));
+            User user = null;
+            if (rs.next()) {
+                user = new User();
+                user.setId(rs.getString("id"));
+                user.setName(rs.getString("name"));
+                user.setPassword(rs.getString("password"));
+            }
 
-        //// changed from ch2
-        User user = null;
-        if (rs.next()) {
-            user = new User();
-            user.setId(rs.getString("id"));
-            user.setName(rs.getString("name"));
-            user.setPassword(rs.getString("password"));
+            if (user == null) throw new EmptyResultDataAccessException(1);
+
+            return user;
+        } catch (SQLException e) {
+            throw e;
+        } finally {
+            if (rs != null) {
+                try {
+                    rs.close();
+                } catch (SQLException e) {
+                }
+            }
+            if (ps != null) {
+                try {
+                    ps.close();
+                } catch (SQLException e) {
+                }
+            }
+            if (c != null) {
+                try {
+                    c.close();
+                } catch (SQLException e) {
+                }
+            }
         }
-
-        rs.close();
-        ps.close();
-        c.close();
-
-        if (user == null) throw new EmptyResultDataAccessException(1);
-
-        return user;
     }
 
     public void deleteAll() throws SQLException {
+        jdbcContextWithStatementStrategy(new StatementStrategy() {
+            public PreparedStatement makePreparedStatement(Connection c) throws SQLException {
+                return c.prepareStatement("delete from users");
+            }
+        });
+    }
 
-        Connection c = dataSource.getConnection();
+    private void jdbcContextWithStatementStrategy(StatementStrategy stmt) throws SQLException {
+        Connection c = null;
+        PreparedStatement ps = null;
 
-        PreparedStatement ps = c.prepareStatement("delete from users");
+        try {
+            c = dataSource.getConnection();
 
-        ps.executeUpdate();
+            ps = stmt.makePreparedStatement(c);
 
-        ps.close();
-        c.close();
-
+            ps.executeUpdate();
+        } catch (SQLException e) {
+            throw e;
+        } finally {
+            if (ps != null) {
+                try {
+                    ps.close();
+                } catch (SQLException e) {
+                }
+            }
+            if (c != null) {
+                try {
+                    c.close();
+                } catch (SQLException e) {
+                }
+            }
+        }
     }
 
     public int getCount() throws SQLException {
+        Connection c = null;
+        PreparedStatement ps = null;
+        ResultSet rs = null;
 
-        Connection c = dataSource.getConnection();
+        try {
+            c = dataSource.getConnection();
 
-        PreparedStatement ps = c.prepareStatement("select count(*) from users");
+            ps = c.prepareStatement("select count(*) from users");
 
-        ResultSet rs = ps.executeQuery();
-        rs.next();
-        int count = rs.getInt(1);
+            rs = ps.executeQuery();
+            rs.next();
+            int count = rs.getInt(1);
 
-        rs.close();
-        ps.close();
-        c.close();
-
-        return count;
+            return count;
+        } catch (SQLException e) {
+            throw e;
+        } finally {
+            if (rs != null) {
+                try {
+                    rs.close();
+                } catch (SQLException e) {
+                }
+            }
+            if (ps != null) {
+                try {
+                    ps.close();
+                } catch (SQLException e) {
+                }
+            }
+            if (c != null) {
+                try {
+                    c.close();
+                } catch (SQLException e) {
+                }
+            }
+        }
     }
+
+//    abstract protected PreparedStatement makeStatement(Connection c) throws SQLException;
 }

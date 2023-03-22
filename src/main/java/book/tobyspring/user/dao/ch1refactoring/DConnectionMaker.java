@@ -1,4 +1,4 @@
-package book.tobyspring.user.dao;
+package book.tobyspring.user.dao.ch1refactoring;
 
 import java.sql.Connection;
 import java.sql.DriverManager;
